@@ -1,5 +1,6 @@
 import { Outlet, useParams, Navigate } from 'react-router-dom'
 import Sidebar from '../components/Sidebar'
+import TopHeader from '../components/TopHeader'
 import SavingIndicator from '../components/SavingIndicator'
 import { useApp } from '../context/AppContext'
 
@@ -14,9 +15,12 @@ export default function ProjectLayout() {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <main className="flex-1 overflow-auto bg-slate-50">
-        <Outlet />
-      </main>
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopHeader />
+        <main className="flex-1 overflow-auto bg-app-bg">
+          <Outlet />
+        </main>
+      </div>
       <SavingIndicator />
     </div>
   )
