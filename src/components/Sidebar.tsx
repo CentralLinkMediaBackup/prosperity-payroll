@@ -1,7 +1,7 @@
-import { NavLink, useParams } from 'react-router-dom'
+import { NavLink, useParams, Link } from 'react-router-dom'
 import { LayoutDashboard, Users, Calculator, History, Settings, ChevronLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
+import logo from '../assets/logo.png'
 
 const NAV = [
   { to: '', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -54,9 +54,9 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-4 py-4 border-t border-slate-700">
-        <p className="text-xs text-slate-500">Prosperity Fire Protection</p>
-        <p className="text-xs text-slate-600">Internal Tool</p>
+      <div className="px-4 py-4 border-t border-slate-700 flex items-center gap-2">
+        <img src={logo} alt="Prosperity Fire Protection" className="h-7 w-auto object-contain opacity-90" />
+        <p className="text-xs text-slate-500 leading-tight">Internal Tool</p>
       </div>
     </aside>
   )
