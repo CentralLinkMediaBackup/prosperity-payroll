@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
-import type { AppData, Project, Worker, PayrollEntry } from '../types'
+import type { AppData, Project, Worker, PayrollEntry, PaycheckPDF } from '../types'
 import { loadData, saveData } from '../utils/storage'
 
 interface AppContextValue {
@@ -17,6 +17,8 @@ interface AppContextValue {
   addPayrollEntry: (e: PayrollEntry) => Promise<void>;
   updatePayrollEntry: (e: PayrollEntry) => Promise<void>;
   deletePayrollEntry: (id: string) => Promise<void>;
+  addPaycheckPDF: (p: PaycheckPDF) => Promise<void>;
+  deletePaycheckPDF: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | null>(null)
@@ -90,12 +92,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     await updateData({ ...data, payrollEntries: data.payrollEntries.filter((x) => x.id !== id) })
   }, [data, updateData])
 
+  const addPaycheckPDF = useCallback(async (p: PaycheckPDF) => {
+    await updateData({ ...data, paycheckPDFs: [...(data.paycheckPDFs ?? []), p] })
+  }, [data, updateData])
+
+  const deletePaycheckPDF = useCallback(async (id: string) => {
+    await updateData({ ...data, paycheckPDFs: (data.paycheckPDFs ?? []).filter((x) => x.id !== id) })
+  }, [data, updateData])
+
   return (
     <AppContext.Provider value={{
       data, loading, saving, error,
       updateData, addProject, updateProject, deleteProject,
       addWorker, updateWorker, deleteWorker,
       addPayrollEntry, updatePayrollEntry, deletePayrollEntry,
+      addPaycheckPDF, deletePaycheckPDF,
     }}>
       {children}
     </AppContext.Provider>

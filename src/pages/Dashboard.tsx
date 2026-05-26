@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'react-router-dom'
-import { MoreVertical, Calendar, AlertTriangle, FileText } from 'lucide-react'
+import { MoreVertical, ChevronLeft, ChevronRight, AlertCircle, CheckCircle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import { formatCurrency } from '../utils/format'
 import {
@@ -11,6 +11,10 @@ import {
 const NAVY = '#1B3A5C'
 const NAVY2 = '#2563A8'
 const ORANGE = '#F47B20'
+const WORKER_COLORS = [NAVY, ORANGE, '#16a34a', '#7c3aed', '#db2777', '#0891b2']
+
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
 function CardHeader({ title, icon }: { title: string; icon?: React.ReactNode }) {
   return (
@@ -31,11 +35,56 @@ function Card({ children, className = '' }: { children: React.ReactNode; classNa
 
 function Avatar({ name }: { name: string }) {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
-  const colors = [NAVY, NAVY2, ORANGE, '#16a34a']
   return (
     <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
-      style={{ background: colors[name.charCodeAt(0) % colors.length] }}>
+      style={{ background: WORKER_COLORS[name.charCodeAt(0) % WORKER_COLORS.length] }}>
       {initials}
+    </div>
+  )
+}
+
+function MiniCalendar() {
+  const today = new Date()
+  const [year, setYear] = useState(today.getFullYear())
+  const [month, setMonth] = useState(today.getMonth())
+
+  const prev = () => { if (month === 0) { setMonth(11); setYear(y => y - 1) } else setMonth(m => m - 1) }
+  const next = () => { if (month === 11) { setMonth(0); setYear(y => y + 1) } else setMonth(m => m + 1) }
+
+  const firstDay = new Date(year, month, 1).getDay()
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)]
+  while (cells.length % 7 !== 0) cells.push(null)
+
+  const isToday = (d: number | null) => d !== null && d === today.getDate() && month === today.getMonth() && year === today.getFullYear()
+
+  return (
+    <div className="px-4 pb-4 pt-1 select-none">
+      <div className="flex items-center justify-between mb-3">
+        <button onClick={prev} className="p-1 rounded hover:bg-slate-100 transition-colors text-slate-500">
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <span className="text-[13px] font-semibold text-slate-700">{MONTH_NAMES[month]} {year}</span>
+        <button onClick={next} className="p-1 rounded hover:bg-slate-100 transition-colors text-slate-500">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-0.5 mb-1">
+        {DAY_NAMES.map(d => (
+          <div key={d} className="text-center text-[9px] font-semibold text-slate-400 pb-1">{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {cells.map((d, i) => (
+          <div key={i} className={`h-7 flex items-center justify-center text-[11px] rounded-md
+            ${d === null ? '' : isToday(d)
+              ? 'text-white font-bold'
+              : 'text-slate-600 hover:bg-slate-50'}`}
+            style={isToday(d) ? { background: ORANGE } : {}}>
+            {d}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -52,14 +101,6 @@ export default function Dashboard() {
   const currentEntries = entries.filter(e => e.weekNumber === maxWeek)
   const currentPeriodEntry = currentEntries[0]
 
-  const currentGross  = currentEntries.reduce((s, e) => s + e.grossPay, 0)
-  const currentFringe = currentEntries.reduce((s, e) => s + e.fringeTotal, 0)
-  const currentTaxes  = currentEntries.reduce((s, e) => s + e.totalTaxes, 0)
-  const currentNet    = currentEntries.reduce((s, e) => s + e.netPay, 0)
-  const currentSS     = currentEntries.reduce((s, e) => s + e.socialSecurityTax, 0)
-  const currentMed    = currentEntries.reduce((s, e) => s + e.medicareTax, 0)
-  const currentFed    = currentEntries.reduce((s, e) => s + e.federalTax, 0)
-
   const totalGross  = entries.reduce((s, e) => s + e.grossPay, 0)
   const totalFringe = entries.reduce((s, e) => s + e.fringeTotal, 0)
   const budgetPct   = Math.min(100, Math.round(((totalGross + totalFringe) / 120000) * 100))
@@ -75,12 +116,6 @@ export default function Dashboard() {
       return pt
     })
   }, [entries, workers])
-
-  const donutData = [
-    { name: 'Taxes',   value: parseFloat(currentTaxes.toFixed(2)) },
-    { name: 'Net Pay', value: parseFloat((currentNet - currentFringe).toFixed(2)) },
-    { name: 'Fringe',  value: parseFloat(currentFringe.toFixed(2)) },
-  ]
 
   const workerStats = workers
     .filter(w => w.name.toLowerCase().includes(search.toLowerCase()))
@@ -103,6 +138,45 @@ export default function Dashboard() {
 
   const w0 = workers[0]?.name.split(' ')[0] ?? 'A'
   const w1 = workers[1]?.name.split(' ')[0] ?? 'B'
+
+  // Card 3: current period per-worker breakdown
+  const periodWorkerData = currentEntries.map((e, i) => {
+    const w = workers.find(x => x.id === e.workerId)
+    return {
+      name: w?.name.split(' ')[0] ?? 'Worker',
+      fullName: w?.name ?? 'Worker',
+      gross: e.grossPay,
+      taxes: e.totalTaxes,
+      net: e.netPay,
+      hours: e.totalHours,
+      color: WORKER_COLORS[i % WORKER_COLORS.length],
+    }
+  }).sort((a, b) => b.gross - a.gross)
+
+  // Card 5: missing payrolls
+  const missingWeeks = useMemo(() => {
+    if (!currentPeriodEntry) return []
+    const lastEndDate = new Date(currentPeriodEntry.payPeriodEnd + 'T00:00:00')
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const existingWeeks = new Set(entries.map(e => e.weekNumber))
+    const missing: { weekNumber: number; startDate: Date; endDate: Date }[] = []
+    let checkEnd = new Date(lastEndDate)
+    checkEnd.setDate(checkEnd.getDate() + 7)
+    let wkNum = maxWeek + 1
+    while (checkEnd <= today) {
+      if (!existingWeeks.has(wkNum)) {
+        const start = new Date(checkEnd)
+        start.setDate(start.getDate() - 6)
+        missing.push({ weekNumber: wkNum, startDate: start, endDate: new Date(checkEnd) })
+      }
+      checkEnd.setDate(checkEnd.getDate() + 7)
+      wkNum++
+    }
+    return missing
+  }, [entries, currentPeriodEntry, maxWeek])
+
+  const fmtShort = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 
   return (
     <div className="p-5">
@@ -138,9 +212,6 @@ export default function Dashboard() {
                     <td className="py-3 text-right text-slate-600">{workers.length}</td>
                   </tr>
                 ))}
-                {data.projects.filter(p => p.id === projectId).length === 0 && (
-                  <tr><td colSpan={4} className="py-8 text-center text-slate-400 text-xs">No data</td></tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -205,97 +276,129 @@ export default function Dashboard() {
 
       {/* ROW 2 */}
       <div className="flex gap-4">
-        {/* Card 3 — Pay Period */}
+        {/* Card 3 — Most Recent Pay Period */}
         <Card className="flex-[50]">
-          <CardHeader title="Pay Period At A Glance" />
-          <div className="p-4 flex gap-6">
-            <div className="flex-1 space-y-3 min-w-0">
-              <div>
-                <p className="text-[11px] text-slate-400 mb-0.5">Current Pay Period</p>
-                <p className="font-semibold text-slate-800 text-sm">{fmtPeriod(currentPeriodEntry)}</p>
-              </div>
-              <div>
-                <p className="text-[11px] text-slate-400 mb-0.5">Gross Pay</p>
-                <p className="text-2xl font-bold text-slate-900">{currentGross > 0 ? formatCurrency(currentGross) : '$0.00'}</p>
-              </div>
-              <div className="space-y-1.5 text-xs">
-                {[['Social Security', currentSS],['Medicare', currentMed],['Federal Income', currentFed]].map(([l,v]) => (
-                  <div key={String(l)} className="flex justify-between">
-                    <span className="text-slate-500">{l}</span>
-                    <span className="font-medium">{formatCurrency(Number(v))}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="pt-2 border-t border-slate-100">
-                <p className="text-[11px] text-slate-400 mb-0.5">Net Pay to be Distributed</p>
-                <p className="text-xl font-bold" style={{ color: NAVY }}>{currentNet > 0 ? formatCurrency(currentNet) : '$0.00'}</p>
-              </div>
-            </div>
-            <div className="w-[150px] flex flex-col items-center justify-center shrink-0">
-              <ResponsiveContainer width="100%" height={130}>
-                <PieChart>
-                  <Pie data={donutData} cx="50%" cy="50%" innerRadius={38} outerRadius={58} dataKey="value" paddingAngle={2}>
-                    {[NAVY, ORANGE, '#16a34a'].map((c, i) => <Cell key={i} fill={c} />)}
-                  </Pie>
-                  <RTooltip formatter={(v: number) => formatCurrency(v)} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-col gap-1">
-                {[{c:NAVY,l:'Taxes'},{c:ORANGE,l:'Net Pay'},{c:'#16a34a',l:'Fringe'}].map(({c,l}) => (
-                  <div key={l} className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: c }} />
-                    <span className="text-[10px] text-slate-500">{l}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Card 4 — Timesheet Approvals */}
-        <Card className="flex-[25]">
-          <CardHeader title="Timesheet Approvals" />
+          <CardHeader title={`Pay Period — Week ${maxWeek}`} />
           <div className="p-4">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100">
-                  <th className="text-left pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider"> </th>
-                  <th className="text-right pb-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Pending</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td className="py-3 text-sm text-slate-600">Timesheet Submissions</td>
-                  <td className="py-3 text-right">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold">0</span>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            {currentPeriodEntry ? (
+              <>
+                <p className="text-xs text-slate-400 mb-3">{fmtPeriod(currentPeriodEntry)}</p>
+                <div className="flex gap-4">
+                  {/* Worker table */}
+                  <div className="flex-1 min-w-0">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-slate-100">
+                          <th className="pb-1.5 text-left text-[10px] font-semibold text-slate-400 uppercase">Employee</th>
+                          <th className="pb-1.5 text-right text-[10px] font-semibold text-slate-400 uppercase">Hrs</th>
+                          <th className="pb-1.5 text-right text-[10px] font-semibold text-green-600 uppercase">Gross</th>
+                          <th className="pb-1.5 text-right text-[10px] font-semibold text-red-500 uppercase">Tax</th>
+                          <th className="pb-1.5 text-right text-[10px] font-semibold text-slate-400 uppercase">Net</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50">
+                        {periodWorkerData.map((w) => (
+                          <tr key={w.name}>
+                            <td className="py-1.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: w.color }} />
+                                <span className="font-medium text-slate-700 text-[11px]">{w.fullName.split(' ')[0]}</span>
+                              </div>
+                            </td>
+                            <td className="py-1.5 text-right text-slate-500">{w.hours.toFixed(1)}</td>
+                            <td className="py-1.5 text-right font-medium text-green-700">{formatCurrency(w.gross)}</td>
+                            <td className="py-1.5 text-right text-red-500">{formatCurrency(w.taxes)}</td>
+                            <td className="py-1.5 text-right font-semibold" style={{ color: NAVY }}>{formatCurrency(w.net)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr className="border-t border-slate-100">
+                          <td className="pt-2 text-[10px] font-semibold text-slate-500">TOTAL</td>
+                          <td className="pt-2 text-right font-semibold text-slate-600 text-[11px]">
+                            {currentEntries.reduce((s,e) => s+e.totalHours, 0).toFixed(1)}
+                          </td>
+                          <td className="pt-2 text-right font-semibold text-green-700 text-[11px]">
+                            {formatCurrency(currentEntries.reduce((s,e) => s+e.grossPay, 0))}
+                          </td>
+                          <td className="pt-2 text-right font-semibold text-red-500 text-[11px]">
+                            {formatCurrency(currentEntries.reduce((s,e) => s+e.totalTaxes, 0))}
+                          </td>
+                          <td className="pt-2 text-right font-semibold text-[11px]" style={{ color: NAVY }}>
+                            {formatCurrency(currentEntries.reduce((s,e) => s+e.netPay, 0))}
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                  {/* Pie chart — who earned most */}
+                  <div className="w-[110px] shrink-0">
+                    <ResponsiveContainer width="100%" height={110}>
+                      <PieChart>
+                        <Pie data={periodWorkerData} dataKey="gross" cx="50%" cy="50%" innerRadius={28} outerRadius={48} paddingAngle={2}>
+                          {periodWorkerData.map((w, i) => <Cell key={i} fill={w.color} />)}
+                        </Pie>
+                        <RTooltip formatter={(v: number) => formatCurrency(v)} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div className="space-y-1 mt-1">
+                      {periodWorkerData.map((w) => (
+                        <div key={w.name} className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ background: w.color }} />
+                          <span className="text-[9px] text-slate-500 truncate">{w.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-slate-400 py-4 text-center">No payroll entries yet.</p>
+            )}
           </div>
         </Card>
 
-        {/* Card 5 — Tax Compliance */}
+        {/* Card 4 — Mini Calendar */}
         <Card className="flex-[25]">
-          <CardHeader title="Tax Compliance" icon={<Calendar className="w-4 h-4 text-accent" />} />
-          <div className="p-4 space-y-3">
-            <div className="flex items-start gap-2">
-              <Calendar className="w-4 h-4 shrink-0 mt-0.5" style={{ color: ORANGE }} />
-              <span className="text-xs text-slate-500">Reminders for upcoming tax deadlines</span>
-            </div>
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: ORANGE }} />
-              <span className="text-xs text-slate-500">Reminders for upcoming tax deadlines</span>
-            </div>
-            <div className="border-t border-slate-100 pt-3">
-              <p className="text-xs font-semibold text-slate-700 mb-2">Tax Documents</p>
-              {['Tax Document Link', 'Tax Document Link'].map((label, i) => (
-                <div key={i} className="flex items-center gap-1.5 py-1">
-                  <FileText className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-xs text-blue-600 hover:underline cursor-pointer">{label}</span>
+          <CardHeader title="Calendar" />
+          <MiniCalendar />
+        </Card>
+
+        {/* Card 5 — Missing Payrolls */}
+        <Card className="flex-[25]">
+          <CardHeader title="Payroll Status" />
+          <div className="p-4 space-y-2">
+            {missingWeeks.length === 0 ? (
+              <div className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-green-500" />
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">All payrolls current</p>
+                  {currentPeriodEntry && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">Last: Week {maxWeek} · {fmtDate(currentPeriodEntry.payPeriodEnd)}</p>
+                  )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                  <span className="text-[11px] font-semibold text-amber-700">{missingWeeks.length} missing payroll{missingWeeks.length !== 1 ? 's' : ''}</span>
+                </div>
+                {missingWeeks.map((mw) => (
+                  <div key={mw.weekNumber} className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <div>
+                      <p className="text-xs font-semibold text-amber-800">Week {mw.weekNumber}</p>
+                      <p className="text-[10px] text-amber-600">{fmtShort(mw.startDate)} – {fmtShort(mw.endDate)}</p>
+                    </div>
+                    <span className="ml-auto text-[9px] bg-amber-200 text-amber-800 px-1.5 py-0.5 rounded-full font-medium">Missing</span>
+                  </div>
+                ))}
+                {currentPeriodEntry && (
+                  <p className="text-[10px] text-slate-400 pt-1">Last recorded: Week {maxWeek} · {fmtDate(currentPeriodEntry.payPeriodEnd)}</p>
+                )}
+              </>
+            )}
           </div>
         </Card>
       </div>

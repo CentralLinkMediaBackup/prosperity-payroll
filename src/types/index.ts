@@ -15,6 +15,18 @@ export interface Worker {
   name: string;
   trade: string;
   regularRate: number;
+  photo?: string | null;
+  idDocument?: string | null;
+  idDocumentName?: string | null;
+}
+
+export interface PaycheckPDF {
+  id: string;
+  weekNumber: number;
+  weekLabel: string;
+  fileName: string;
+  data: string;
+  uploadedAt: string;
 }
 
 export interface DailyBreakdown {
@@ -63,4 +75,5 @@ export interface AppData {
   projects: Project[];
   workers: Worker[];
   payrollEntries: PayrollEntry[];
+  paycheckPDFs?: PaycheckPDF[];
 }

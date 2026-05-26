@@ -1,13 +1,13 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AppProvider } from './context/AppContext'
 import Landing from './pages/Landing'
-import NewProject from './pages/NewProject'
 import ProjectLayout from './pages/ProjectLayout'
 import Dashboard from './pages/Dashboard'
 import Workers from './pages/Workers'
 import PayrollCalculator from './pages/PayrollCalculator'
 import PayrollHistory from './pages/PayrollHistory'
-import ProjectSettings from './pages/ProjectSettings'
+import Paychecks from './pages/Paychecks'
+import Reports from './pages/Reports'
 
 export default function App() {
   return (
@@ -15,14 +15,15 @@ export default function App() {
       <AppProvider>
         <Routes>
           <Route path="/" element={<Landing />} />
-          <Route path="/projects/new" element={<NewProject />} />
           <Route path="/projects/:projectId" element={<ProjectLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="workers" element={<Workers />} />
             <Route path="calculator" element={<PayrollCalculator />} />
             <Route path="history" element={<PayrollHistory />} />
-            <Route path="settings" element={<ProjectSettings />} />
+            <Route path="paychecks" element={<Paychecks />} />
+            <Route path="reports" element={<Reports />} />
           </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppProvider>
     </BrowserRouter>

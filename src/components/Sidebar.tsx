@@ -1,14 +1,14 @@
 import { NavLink, useParams, Link } from 'react-router-dom'
-import { LayoutDashboard, FolderOpen, Users, Clock, FileText, BarChart2, Flame } from 'lucide-react'
+import { LayoutDashboard, Users, Clock, FileText, BarChart2, Flame, FileCheck } from 'lucide-react'
 import logo from '../assets/logo.png'
 
 const NAV = [
-  { to: '',          label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { to: 'projects',  label: 'Projects',  icon: FolderOpen },
-  { to: 'workers',   label: 'Employees', icon: Users },
-  { to: 'calculator',label: 'Timesheets',icon: Clock },
-  { to: 'history',   label: 'Taxes',     icon: FileText },
-  { to: 'reports',   label: 'Reports',   icon: BarChart2 },
+  { to: '',            label: 'Dashboard',          icon: LayoutDashboard, end: true },
+  { to: 'workers',     label: 'Employees',          icon: Users },
+  { to: 'calculator',  label: 'Payroll Calculator', icon: Clock },
+  { to: 'history',     label: 'Payroll History',    icon: FileText },
+  { to: 'paychecks',   label: 'Paychecks',          icon: FileCheck },
+  { to: 'reports',     label: 'Reports',            icon: BarChart2 },
 ]
 
 export default function Sidebar() {
