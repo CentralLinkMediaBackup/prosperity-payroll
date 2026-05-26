@@ -1,20 +1,20 @@
 import { Link } from 'react-router-dom'
-import { Plus, MapPin, Building2 } from 'lucide-react'
+import { Plus, MapPin, Building2, AlertTriangle } from 'lucide-react'
 import { useApp } from '../context/AppContext'
 import LoadingSpinner from '../components/LoadingSpinner'
 import SavingIndicator from '../components/SavingIndicator'
 import logo from '../assets/logo.png'
 
 export default function Landing() {
-  const { data, loading } = useApp()
+  const { data, loading, error } = useApp()
 
   if (loading) return <LoadingSpinner fullScreen />
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-app-bg">
       <SavingIndicator />
       <header className="bg-white border-b border-slate-200">
-        <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={logo} alt="Prosperity Fire Protection" className="h-10 w-auto object-contain" />
             <div>
@@ -24,15 +24,25 @@ export default function Landing() {
           </div>
           <Link
             to="/projects/new"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            style={{ background: '#1B3A5C' }}
           >
             <Plus className="w-4 h-4" /> New Project
           </Link>
         </div>
       </header>
 
+      {error && (
+        <div className="max-w-6xl mx-auto px-6 pt-4">
+          <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <AlertTriangle className="w-4 h-4 shrink-0" />
+            <span>Could not load data from server: <strong>{error}</strong>. Check your network or try refreshing (Cmd+Shift+R).</span>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-6xl mx-auto px-6 py-10">
-        {data.projects.length === 0 ? (
+        {data.projects.length === 0 && !error ? (
           <div className="text-center py-24">
             <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Building2 className="w-8 h-8 text-blue-400" />
@@ -41,7 +51,8 @@ export default function Landing() {
             <p className="text-slate-500 mb-6 text-sm">Create your first project to start tracking payroll.</p>
             <Link
               to="/projects/new"
-              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              className="inline-flex items-center gap-2 text-white px-5 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              style={{ background: '#1B3A5C' }}
             >
               <Plus className="w-4 h-4" /> Create Project
             </Link>
@@ -58,13 +69,14 @@ export default function Landing() {
                   <Link
                     key={project.id}
                     to={`/projects/${project.id}`}
-                    className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md hover:border-blue-200 transition-all group"
+                    className="bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md transition-all group"
                   >
                     <div className="flex items-start justify-between mb-4">
                       {project.logo ? (
                         <img src={project.logo} alt="" className="w-12 h-12 rounded-xl object-contain bg-slate-50 p-1 border border-slate-100" />
                       ) : (
-                        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white font-bold text-lg group-hover:bg-blue-700 transition-colors">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-bold text-lg transition-colors"
+                          style={{ background: '#1B3A5C' }}>
                           {project.name[0]}
                         </div>
                       )}
@@ -73,7 +85,7 @@ export default function Landing() {
                       </span>
                     </div>
                     <h3 className="font-semibold text-slate-900 mb-0.5">{project.name}</h3>
-                    <p className="text-sm text-blue-600 font-medium mb-2">{project.gc}</p>
+                    <p className="text-sm font-medium mb-2" style={{ color: '#F47B20' }}>{project.gc}</p>
                     <div className="flex items-center gap-1 text-xs text-slate-500 mb-3">
                       <MapPin className="w-3 h-3 shrink-0" />
                       <span className="truncate">{project.address}</span>
@@ -81,9 +93,7 @@ export default function Landing() {
                     {entries.length > 0 && (
                       <div className="border-t border-slate-100 pt-3 mt-3 flex justify-between text-xs text-slate-500">
                         <span>{entries.length} payroll entries</span>
-                        <span className="text-green-700 font-medium">
-                          ${(totalGross / 1000).toFixed(1)}k gross
-                        </span>
+                        <span className="text-green-700 font-medium">${(totalGross / 1000).toFixed(1)}k gross</span>
                       </div>
                     )}
                   </Link>
@@ -91,7 +101,7 @@ export default function Landing() {
               })}
               <Link
                 to="/projects/new"
-                className="border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-blue-300 hover:text-blue-500 transition-all min-h-[160px]"
+                className="border-2 border-dashed border-slate-200 rounded-2xl p-5 flex flex-col items-center justify-center text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-all min-h-[160px]"
               >
                 <Plus className="w-8 h-8 mb-2" />
                 <span className="text-sm font-medium">New Project</span>
