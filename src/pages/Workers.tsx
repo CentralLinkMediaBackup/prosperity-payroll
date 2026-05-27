@@ -11,30 +11,38 @@ import { deriveRates } from '../utils/payroll'
 
 const COLORS = ['#1B3A5C', '#2563A8', '#F47B20', '#16a34a']
 
-function Avatar({ worker }: { worker: Worker }) {
+function WorkerAvatar({ worker, size = 48 }: { worker: Worker; size?: number }) {
   if (worker.photo) {
-    return <img src={worker.photo} alt={worker.name} className="w-full h-full object-cover" />
+    return (
+      <img
+        src={worker.photo}
+        alt={worker.name}
+        className="rounded-full object-cover shrink-0"
+        style={{ width: size, height: size }}
+      />
+    )
   }
   const initials = worker.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
   const bg = COLORS[worker.name.charCodeAt(0) % COLORS.length]
   return (
-    <div className="w-full h-full flex items-center justify-center text-white font-bold text-xl" style={{ background: bg }}>
+    <div
+      className="rounded-full flex items-center justify-center text-white font-bold shrink-0"
+      style={{ width: size, height: size, background: bg, fontSize: size * 0.33 }}
+    >
       {initials}
     </div>
   )
 }
 
-function openDoc(dataUrl: string, name: string) {
+function openInNewTab(dataUrl: string) {
   const byteStr = atob(dataUrl.split(',')[1])
   const mime = dataUrl.split(',')[0].split(':')[1].split(';')[0]
   const ab = new Uint8Array(byteStr.length)
   for (let i = 0; i < byteStr.length; i++) ab[i] = byteStr.charCodeAt(i)
   const blob = new Blob([ab], { type: mime })
   const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.target = '_blank'; a.download = name
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  window.open(url, '_blank')
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
 }
 
 export default function Workers() {
@@ -94,71 +102,72 @@ export default function Workers() {
           <p className="font-medium text-slate-700 mb-1">No employees yet</p>
           <p className="text-sm text-slate-500 mb-4">Add employees to start calculating payroll.</p>
           <button onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 text-white px-4 py-2 rounded-lg text-sm font-medium"
             style={{ background: '#1B3A5C' }}>
             <Plus className="w-4 h-4" /> Add Employee
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {workers.map((w) => {
             const { otRate, baseReg, otBase } = deriveRates(w.regularRate)
             const entryCount = data.payrollEntries.filter((e) => e.workerId === w.id).length
             return (
-              <div key={w.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
-                {/* Photo header */}
-                <div className="h-32 w-full overflow-hidden bg-slate-100 relative">
-                  <Avatar worker={w} />
-                  <div className="absolute top-2 right-2 flex gap-1">
+              <div key={w.id} className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+                {/* Header row: avatar + name + actions */}
+                <div className="flex items-center gap-4 mb-4">
+                  <WorkerAvatar worker={w} size={56} />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-slate-900 text-[15px] leading-tight">{w.name}</h3>
+                    <p className="text-xs mt-0.5 font-medium" style={{ color: '#F47B20' }}>{w.trade}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{entryCount} payroll entries</p>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
                     <button onClick={() => setEditing(w)}
-                      className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-slate-500 hover:text-blue-600 shadow transition-colors">
+                      className="w-8 h-8 rounded-lg hover:bg-blue-50 text-slate-400 hover:text-blue-600 flex items-center justify-center transition-colors">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={() => setDeleting(w)}
-                      className="w-7 h-7 rounded-full bg-white/90 flex items-center justify-center text-slate-500 hover:text-red-500 shadow transition-colors">
+                      className="w-8 h-8 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 flex items-center justify-center transition-colors">
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                 </div>
 
-                <div className="p-4">
-                  <h3 className="font-semibold text-slate-900 text-[15px]">{w.name}</h3>
-                  <p className="text-xs text-slate-500 mb-3" style={{ color: '#F47B20' }}>{w.trade}</p>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                    <div className="bg-slate-50 rounded-lg p-2">
-                      <p className="text-slate-400 mb-0.5">Reg rate</p>
-                      <p className="font-semibold text-slate-700">{formatCurrency(w.regularRate)}/hr</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-2">
-                      <p className="text-slate-400 mb-0.5">OT rate</p>
-                      <p className="font-semibold text-amber-700">{formatCurrency(otRate)}/hr</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-2">
-                      <p className="text-slate-400 mb-0.5">Base reg</p>
-                      <p className="font-medium text-slate-600">{formatCurrency(baseReg)}/hr</p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-2">
-                      <p className="text-slate-400 mb-0.5">Base OT</p>
-                      <p className="font-medium text-slate-600">{formatCurrency(otBase)}/hr</p>
-                    </div>
+                {/* Rate grid */}
+                <div className="grid grid-cols-4 gap-2 text-xs mb-4">
+                  <div className="bg-slate-50 rounded-lg p-2 col-span-2">
+                    <p className="text-slate-400 mb-0.5">Regular rate</p>
+                    <p className="font-semibold text-slate-700">{formatCurrency(w.regularRate)}/hr</p>
                   </div>
-
-                  <div className="flex items-center justify-between border-t border-slate-100 pt-3">
-                    <span className="text-xs text-slate-400">{entryCount} payroll entries</span>
-                    {w.idDocument ? (
-                      <button
-                        onClick={() => openDoc(w.idDocument!, w.idDocumentName ?? 'id-document')}
-                        className="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-700 transition-colors"
-                      >
-                        <FileText className="w-3.5 h-3.5" />
-                        View ID
-                        <ExternalLink className="w-3 h-3" />
-                      </button>
-                    ) : (
-                      <span className="text-xs text-slate-300">No ID uploaded</span>
-                    )}
+                  <div className="bg-slate-50 rounded-lg p-2 col-span-2">
+                    <p className="text-slate-400 mb-0.5">OT rate</p>
+                    <p className="font-semibold text-amber-700">{formatCurrency(otRate)}/hr</p>
                   </div>
+                  <div className="bg-slate-50 rounded-lg p-2 col-span-2">
+                    <p className="text-slate-400 mb-0.5">Base reg</p>
+                    <p className="font-medium text-slate-600">{formatCurrency(baseReg)}/hr</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-2 col-span-2">
+                    <p className="text-slate-400 mb-0.5">Base OT</p>
+                    <p className="font-medium text-slate-600">{formatCurrency(otBase)}/hr</p>
+                  </div>
+                </div>
+
+                {/* ID document */}
+                <div className="border-t border-slate-100 pt-3">
+                  {w.idDocument ? (
+                    <button
+                      onClick={() => openInNewTab(w.idDocument!)}
+                      className="flex items-center gap-2 text-xs text-blue-600 hover:text-blue-700 transition-colors group"
+                    >
+                      <FileText className="w-3.5 h-3.5 shrink-0" />
+                      <span className="truncate max-w-[180px]">{w.idDocumentName ?? 'ID Document'}</span>
+                      <ExternalLink className="w-3 h-3 shrink-0 opacity-60 group-hover:opacity-100" />
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-300">No ID uploaded</span>
+                  )}
                 </div>
               </div>
             )
@@ -181,7 +190,7 @@ export default function Workers() {
       {deleting && (
         <Modal title="Remove Employee" onClose={() => setDeleting(null)}>
           <p className="text-sm text-slate-600 mb-5">
-            Remove <strong>{deleting.name}</strong>? This will also delete all their payroll entries. This cannot be undone.
+            Remove <strong>{deleting.name}</strong>? This will also delete all their payroll entries.
           </p>
           <div className="flex gap-3">
             <button onClick={handleDelete}
