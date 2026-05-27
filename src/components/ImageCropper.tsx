@@ -82,9 +82,6 @@ export default function ImageCropper({ src, onDone, onCancel }: Props) {
     onDone(canvas.toDataURL('image/jpeg', 0.88))
   }
 
-  const imgW = naturalSize.w * scale
-  const imgH = naturalSize.h * scale
-
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-xs text-slate-400">Drag to reposition · scroll or +/− to zoom</p>
@@ -112,8 +109,9 @@ export default function ImageCropper({ src, onDone, onCancel }: Props) {
           onLoad={onImgLoad}
           style={{
             position: 'absolute',
-            width: imgW || '100%',
-            height: imgH || 'auto',
+            width: naturalSize.w ? naturalSize.w * scale : '100%',
+            height: naturalSize.h ? naturalSize.h * scale : 'auto',
+            maxWidth: 'none',
             left: '50%',
             top: '50%',
             transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
